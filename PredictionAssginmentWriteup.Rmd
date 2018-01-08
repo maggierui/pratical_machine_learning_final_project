@@ -1,0 +1,100 @@
+---
+title: "Practical Machine Learning Final Project - Prediction Assignment Writeup"
+author: "Rui Hu"
+date: "1/5/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+
+This document is to the Prediction Assignment Writeup for the Coursera Course of "Practical Machine Learning." The goal of this assignment is to build a model using the training dataset to predict(evaluate) weight lifters' postures of weight lifting.
+The data sets were provided by Ugulino, et.al (2012) as part of their "Human Activity Recognition" project. In their project, data was recorded from the accelerometers on the belt, forearm, arm, and dumbell of 6 participants. Participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions:  
+* Class A: exactly according to the specification  
+* Class B: throwing the elbows to the front  
+* Class C: lifting the dumbbell only halfway  
+* Class D: lowering the dumbbell only halfway  
+* Class E: throwing the hips to the front  
+
+Among the five fashions, only Class A is the right posture. For feature selection, the researchers chose to use a slide window approach, with duration from 0.5 seconds to 2.5 seconds, with 0.5 second overlap. For each window of each sensor, three sets of data, including Euler angles, the raw accelerometer, gyroscope and magnetometer. For Euler angles, the following features were calculated: mean, variance, standard deviation, max, min, amplitude, kurtosis and skewness, generating in total 96 derived feature sets.
+
+## Data Cleaning
+The training dataset is provided here: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv  
+The testing dataset is provided here: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+
+```{r}
+library(Hmisc)
+training<-read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",header=T)
+testing<-read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",header=T)
+#summary(training)
+#describe(training)
+```
+
+Looking at the output of 'summary(training)' and 'describe(training)', I see lots of "NA." Reading the publication by Ugulino, et.al (2012), it seems that the features would only be calculated when there is a new window, and that is why lots of NAs exist for records that are not for a new window.  I also see that some numeric data was displayed as "#DIV/0!". I choose to first deal with "#DIV/0!".  
+
+```{r echo=TRUE}
+training<-read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",header=T, na.strings = c("NA","#DIV/0!",""))
+testing<-read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",header=T, na.strings = c("NA","#DIV/0!",""))
+
+```
+
+To further clean the data, the columns with even just one missing data ("NA") are removed: 
+```{r echo=TRUE}
+training<-training[,colSums(is.na(training)) == 0]
+testing<-testing[,colSums(is.na(testing)) == 0]
+```
+
+Futhermore, the first seven columns don't contribute to the modeling, hence they are removed:
+
+```{r echo=TRUE}
+training<-training[,-c(1:7)]
+testing<-testing[,-c(1:7)]
+```
+
+## Data Analysis
+First, we will split the training dataset into two parts: one part for training and the other part for testing.
+```{r echo=TRUE}
+library(caret)
+library(randomForest)
+library(rpart)
+set.seed(1234)
+train_index<-createDataPartition(y=training$classe,p=0.75,list=F)
+training_train<-training[train_index,]
+training_test<-training[-train_index,]
+```
+
+In the research by Ugulino, et.al (2012), it is suggested that Random Forest approach is the most appropriate due to the characteristic noise in the sensor data. I will prove this by trying several different approaches. 
+
+## Modeling Approach 1: Random Forest
+First, modeling with Random Forest:
+
+```{r echo=TRUE}
+fit_rf<-randomForest(classe~.,data=training_train,method="class")
+prediction_rf<-predict(fit_rf,training_test,method="class")
+## Cross validation
+confusionMatrix(prediction_rf,training_test$classe)
+```
+
+## Modeling Approach 2: Decision Tree
+
+```{r echo=TRUE}
+fit_dt<-train(classe~.,data=training_train,method="rpart")
+prediction_dt<-predict(fit_dt,newdata=training_test)
+## Cross validation
+confusionMatrix(prediction_dt,training_test$classe)
+```
+
+## Conclusion
+The outputs from both confusion matrices tell us that the accuracy of Random Forest approach is **0.9949**, whereas the accuracy of Decision Tree approach is **0.4953**. Therefore, I choose 'fit_rf' model with Random Forest approach. Using this model, the predicted 'classe' for the testing data set is:
+```{r echo=TRUE}
+prediction_testing<-predict(fit_rf,testing,method="class")
+prediction_testing
+```
+
+##References:  
+Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. **Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements**. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6. 
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. **Qualitative Activity Recognition of Weight Lifting Exercises**. Proceedings of 4th Augmented Human (AH) International Conference in cooperation with ACM SIGCHI (Augmented Human'13) . Stuttgart, Germany: ACM SIGCHI, 2013. Retrieved at http://web.archive.org/web/20170519033209/http://groupware.les.inf.puc-rio.br:80/public/papers/2013.Velloso.QAR-WLE.pdf
