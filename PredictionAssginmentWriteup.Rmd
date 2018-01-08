@@ -88,13 +88,21 @@ prediction_dt<-predict(fit_dt,newdata=training_test)
 confusionMatrix(prediction_dt,training_test$classe)
 ```
 
+## Estimating Out-of-Sample Error
+By now, we can see that the outputs from both confusion matrices tell us that the accuracy of Random Forest approach is **0.9949**, whereas the accuracy of Decision Tree approach is **0.4953**. Therefore, the 'fit_rf' model with Random Forest approach seems to be a better choice. However, we still need to consider the ** out of sample error**. Out of sample error is usually caused by overfitting and that is the main error that we care about. 
+```{r echo=TRUE}
+outofsample.accuracy<-sum(prediction_rf==training_test$classe)/length(prediction_rf)
+outofsample.error<-1-outofsample.accuracy
+outofsample.error
+```
 ## Conclusion
-The outputs from both confusion matrices tell us that the accuracy of Random Forest approach is **0.9949**, whereas the accuracy of Decision Tree approach is **0.4953**. Therefore, I choose 'fit_rf' model with Random Forest approach. Using this model, the predicted 'classe' for the testing data set is:
+ Out of sample error is 0.0047.   Using the fit_rf model, the predicted 'classe' for the testing data set is:Using this model, the predicted 'classe' for the testing data set is:
 ```{r echo=TRUE}
 prediction_testing<-predict(fit_rf,testing,method="class")
 prediction_testing
 ```
 
 ##References:  
-Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. **Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements**. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6. 
+Burchell,J. **Using k-fold cross-validation to estimate out-of-sample accuracy**. Retrieved at http://t-redactyl.io/blog/2015/10/using-k-fold-cross-validation-to-estimate-out-of-sample-accuracy.html  
+Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. **Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements**. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6.  
 Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. **Qualitative Activity Recognition of Weight Lifting Exercises**. Proceedings of 4th Augmented Human (AH) International Conference in cooperation with ACM SIGCHI (Augmented Human'13) . Stuttgart, Germany: ACM SIGCHI, 2013. Retrieved at http://web.archive.org/web/20170519033209/http://groupware.les.inf.puc-rio.br:80/public/papers/2013.Velloso.QAR-WLE.pdf
